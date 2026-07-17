@@ -33,12 +33,19 @@ Restart Claude Code afterwards. Re-running is safe.
 | `/dream` | memory consolidation (also auto-runs every 24h) |
 | `/plan-big-execute-small` | delegate bulk reading to cheap parallel agents |
 | `/stop-slop` | strip AI-writing tells from prose |
+| `/lifeboat` | manual checkpoint of in-flight task state (auto version runs via hooks) |
 
-### Hook (`hooks/safety-net.py`)
-Blocks `rm -rf` on dangerous targets, force-push (allows
-`--force-with-lease`), `git reset --hard`, `git clean -f`, `git checkout .`,
-`git branch -D`, stash drop/clear — before they run. Locally authored,
-tested, ~60 lines of Python you can read yourself.
+### Hooks (`hooks/`)
+- **safety-net.py** — blocks `rm -rf` on dangerous targets, force-push
+  (allows `--force-with-lease`), `git reset --hard`, `git clean -f`,
+  `git checkout .`, `git branch -D`, stash drop/clear — before they run.
+- **lifeboat-save.py / lifeboat-restore.py** — when the context window
+  fills and Claude compacts the conversation, save snapshots your
+  in-flight task state (recent intent, edited files, git state) with zero
+  token cost; restore injects it once on your next message so work
+  continues where it left off. Pattern adapted from u-ichi/compact-plus.
+
+All locally authored, tested, short Python you can read yourself.
 
 ### Routines (`routines/`)
 Templates for two scheduled tasks (Claude Code → Scheduled section, or ask

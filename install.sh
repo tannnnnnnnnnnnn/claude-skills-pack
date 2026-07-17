@@ -23,10 +23,12 @@ done
 chmod +x "$CLAUDE_DIR/skills/dream/should-dream.sh" 2>/dev/null || true
 printf 'DREAM_MEMORY_TYPE=native\nDREAM_MEMORY_PATH=~/.claude/projects\n' > "$CLAUDE_DIR/skills/dream/.dream-config"
 
-# 2. Safety-net hook script
+# 2. Hook scripts
 mkdir -p "$CLAUDE_DIR/hooks"
-cp "$PACK_DIR/hooks/safety-net.py" "$CLAUDE_DIR/hooks/safety-net.py"
-echo "  hook safety-net.py: installed"
+for h in safety-net.py lifeboat-save.py lifeboat-restore.py; do
+  cp "$PACK_DIR/hooks/$h" "$CLAUDE_DIR/hooks/$h"
+  echo "  hook $h: installed"
+done
 
 # 3. Wire hooks into settings.json (merge, never clobber)
 python3 - "$CLAUDE_DIR" <<'PY'
@@ -46,6 +48,18 @@ if not any(safety_cmd in h.get("command", "") for m in pre for h in m.get("hooks
     print("  settings: safety-net PreToolUse hook added")
 else:
     print("  settings: safety-net hook already present")
+
+prec = hooks.setdefault("PreCompact", [])
+save_cmd = f"python3 {claude_dir}/hooks/lifeboat-save.py"
+if not any("lifeboat-save" in h.get("command", "") for m in prec for h in m.get("hooks", [])):
+    prec.append({"hooks": [{"type": "command", "command": save_cmd}]})
+    print("  settings: lifeboat PreCompact hook added")
+
+ups = hooks.setdefault("UserPromptSubmit", [])
+restore_cmd = f"python3 {claude_dir}/hooks/lifeboat-restore.py"
+if not any("lifeboat-restore" in h.get("command", "") for m in ups for h in m.get("hooks", [])):
+    ups.append({"hooks": [{"type": "command", "command": restore_cmd}]})
+    print("  settings: lifeboat UserPromptSubmit hook added")
 
 stop = hooks.setdefault("Stop", [])
 dream_cmd = 'bash $HOME/.claude/skills/dream/should-dream.sh >/dev/null 2>&1 && touch $HOME/.claude/.dream-pending; exit 0'
