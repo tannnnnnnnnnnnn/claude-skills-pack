@@ -1,0 +1,248 @@
+<title>Tan's Claude Skills — Cheatsheet</title>
+<style>
+  :root {
+    --ground: #F7F6F1;
+    --card: #FFFFFF;
+    --ink: #23262B;
+    --ink-soft: #5C6168;
+    --line: #E4E2DA;
+    --accent: #1F8A70;
+    --accent-soft: #E3F2EC;
+    --chip-bg: #23262B;
+    --chip-fg: #F7F6F1;
+    --auto-bg: #FFF4DE;
+    --auto-fg: #8A6116;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: "Avenir Next", "Seravek", "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #17191D;
+      --card: #1E2126;
+      --ink: #E8E6E0;
+      --ink-soft: #9BA0A8;
+      --line: #2E3238;
+      --accent: #3BB893;
+      --accent-soft: #1E3229;
+      --chip-bg: #E8E6E0;
+      --chip-fg: #17191D;
+      --auto-bg: #332A17;
+      --auto-fg: #E3B45E;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #17191D; --card: #1E2126; --ink: #E8E6E0; --ink-soft: #9BA0A8;
+    --line: #2E3238; --accent: #3BB893; --accent-soft: #1E3229;
+    --chip-bg: #E8E6E0; --chip-fg: #17191D; --auto-bg: #332A17; --auto-fg: #E3B45E;
+  }
+  :root[data-theme="light"] {
+    --ground: #F7F6F1; --card: #FFFFFF; --ink: #23262B; --ink-soft: #5C6168;
+    --line: #E4E2DA; --accent: #1F8A70; --accent-soft: #E3F2EC;
+    --chip-bg: #23262B; --chip-fg: #F7F6F1; --auto-bg: #FFF4DE; --auto-fg: #8A6116;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground); color: var(--ink);
+    font-family: var(--sans); line-height: 1.5;
+    margin: 0; padding: 2.5rem 1.25rem 4rem;
+  }
+  .wrap { max-width: 700px; margin: 0 auto; }
+  header { margin-bottom: 2rem; }
+  .eyebrow {
+    font-family: var(--mono); font-size: .7rem; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 .5rem;
+  }
+  h1 {
+    font-size: 1.7rem; font-weight: 700; margin: 0 0 .35rem;
+    letter-spacing: -.01em; text-wrap: balance;
+  }
+  header p { color: var(--ink-soft); margin: 0; font-size: .95rem; }
+  h2 {
+    font-size: .78rem; font-family: var(--mono); text-transform: uppercase;
+    letter-spacing: .12em; color: var(--ink-soft);
+    margin: 2.2rem 0 .8rem; display: flex; align-items: center; gap: .6rem;
+  }
+  h2::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .rows { display: flex; flex-direction: column; gap: .5rem; }
+  .row {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; padding: .8rem .95rem;
+    display: grid; grid-template-columns: 9.5rem 1fr; gap: .35rem 1rem;
+  }
+  @media (max-width: 540px) { .row { grid-template-columns: 1fr; } }
+  .cmd {
+    font-family: var(--mono); font-size: .82rem; font-weight: 600;
+    color: var(--chip-fg); background: var(--chip-bg);
+    border-radius: 5px; padding: .18rem .5rem;
+    justify-self: start; align-self: start; white-space: nowrap;
+  }
+  .row.auto .cmd { background: var(--auto-bg); color: var(--auto-fg); }
+  .when { font-size: .92rem; }
+  .when strong { font-weight: 650; }
+  .why { grid-column: 2; color: var(--ink-soft); font-size: .84rem; }
+  @media (max-width: 540px) { .why { grid-column: 1; } }
+  .ex {
+    grid-column: 2; font-family: var(--mono); font-size: .8rem;
+    color: var(--accent); background: var(--accent-soft);
+    border-radius: 5px; padding: .3rem .55rem; overflow-x: auto;
+    white-space: nowrap;
+  }
+  @media (max-width: 540px) { .ex { grid-column: 1; } }
+  .sched {
+    font-family: var(--mono); font-size: .72rem; color: var(--ink-soft);
+    align-self: start; justify-self: start; padding-top: .25rem; white-space: nowrap;
+  }
+  .thumb {
+    margin-top: 2.4rem; background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 1rem 1.1rem;
+  }
+  .thumb h3 {
+    margin: 0 0 .6rem; font-size: .78rem; font-family: var(--mono);
+    text-transform: uppercase; letter-spacing: .12em; color: var(--ink-soft);
+  }
+  .thumb ul { margin: 0; padding: 0; list-style: none; columns: 2; column-gap: 2rem; }
+  @media (max-width: 540px) { .thumb ul { columns: 1; } }
+  .thumb li {
+    font-size: .88rem; padding: .28rem 0; break-inside: avoid;
+    display: flex; gap: .5rem; align-items: baseline;
+  }
+  .thumb li b { font-weight: 650; min-width: 6.2rem; }
+  .thumb li span { font-family: var(--mono); font-size: .8rem; color: var(--accent); }
+  footer {
+    margin-top: 2rem; font-size: .8rem; color: var(--ink-soft); text-align: center;
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Tan · Claude Code · 2026-07</p>
+    <h1>Skills Cheatsheet</h1>
+    <p>Everything local. Amber chips run themselves — dark chips are yours to call.</p>
+  </header>
+
+  <h2>Runs on its own</h2>
+  <div class="rows">
+    <div class="row auto">
+      <span class="cmd">safety-net</span>
+      <span class="when">Blocks destructive commands before they run — <strong>rm&nbsp;-rf&nbsp;/</strong>, force-push, hard reset.</span>
+      <span class="sched">every Bash call</span>
+    </div>
+    <div class="row auto">
+      <span class="cmd">claude-mem</span>
+      <span class="when">Records every session's decisions into local searchable memory.</span>
+      <span class="sched">every session</span>
+    </div>
+    <div class="row auto">
+      <span class="cmd">dream-nightly</span>
+      <span class="when">Consolidates memory, refreshes the AI Brain graph, drops a morning brief.</span>
+      <span class="sched">daily · 3:35 am</span>
+    </div>
+    <div class="row auto">
+      <span class="cmd">graphify-weekly</span>
+      <span class="when">Re-clusters the brain graph; writes a Weekly Brain Report — new connections, gaps, stale zones.</span>
+      <span class="sched">sun · 6 pm</span>
+    </div>
+    <div class="row auto">
+      <span class="cmd">caveman</span>
+      <span class="when">Terse replies, ~65% fewer output tokens. Always on via CLAUDE.md.</span>
+      <span class="sched">always</span>
+    </div>
+  </div>
+
+  <h2>Think &amp; decide</h2>
+  <div class="rows">
+    <div class="row">
+      <span class="cmd">/brainstorm</span>
+      <span class="when"><strong>You have an idea but no plan.</strong> Asks questions, shows options, writes a plan. No code until you approve.</span>
+      <span class="ex">/brainstorm I want a referral system in my app</span>
+    </div>
+    <div class="row">
+      <span class="cmd">/ultrathink</span>
+      <span class="when"><strong>One hard decision.</strong> Thinks deeply, gives you one clear recommendation.</span>
+      <span class="ex">/ultrathink should I switch to Postgres or stay on SQLite?</span>
+    </div>
+  </div>
+
+  <h2>Build</h2>
+  <div class="rows">
+    <div class="row">
+      <span class="cmd">/manager</span>
+      <span class="when"><strong>Big task with many parts.</strong> Splits the work, hands each piece to the right helper, checks it all before done.</span>
+      <span class="ex">/manager add login with Google across the whole app</span>
+    </div>
+    <div class="row">
+      <span class="cmd">/ultracode</span>
+      <span class="when"><strong>Same check, everywhere.</strong> Sends many agents across the whole repo at once.</span>
+      <span class="ex">/ultracode check every page for missing login protection</span>
+    </div>
+    <div class="row">
+      <span class="cmd">/worktree</span>
+      <span class="when"><strong>Risky experiment.</strong> Works on a safe copy so your real code stays untouched. <strong>/worktree done</strong> → keep or throw away.</span>
+      <span class="ex">/worktree try rewriting the pricing page</span>
+    </div>
+    <div class="row">
+      <span class="cmd">/goal</span>
+      <span class="when"><strong>Long job, don't babysit.</strong> Keeps going on its own until the goal is actually done.</span>
+      <span class="ex">/goal all tests pass</span>
+    </div>
+    <div class="row">
+      <span class="cmd">/loop</span>
+      <span class="when"><strong>Check something on repeat.</strong> Timer-based — "until done" is /goal.</span>
+      <span class="ex">/loop 10m check CI and fix failures</span>
+    </div>
+  </div>
+
+  <h2>Fix &amp; verify</h2>
+  <div class="rows">
+    <div class="row">
+      <span class="cmd">/debug</span>
+      <span class="when"><strong>It's broken and you're tempted to just try stuff.</strong> Finds the real cause first — no guess-patches.</span>
+      <span class="ex">/debug login randomly fails since Tuesday's deploy</span>
+    </div>
+    <div class="row">
+      <span class="cmd">/fable</span>
+      <span class="when"><strong>Code works, but it touches money or logins.</strong> A second AI (Codex) reviews it until it approves.</span>
+      <span class="ex">/fable review my payment changes</span>
+    </div>
+  </div>
+
+  <h2>Recall — three memories</h2>
+  <div class="rows">
+    <div class="row">
+      <span class="cmd">/graphify</span>
+      <span class="when"><strong>Ask your own notes.</strong> Meetings, people, projects — answered from your AI Brain vault.</span>
+      <span class="ex">/graphify query "what did we decide about the vendor eval?"</span>
+    </div>
+    <div class="row">
+      <span class="cmd">/mem-search</span>
+      <span class="when"><strong>Ask past sessions.</strong> "Did we already solve this? How?"</span>
+      <span class="ex">/mem-search how did we fix that bug last week</span>
+    </div>
+    <div class="row">
+      <span class="cmd">/smart-explore</span>
+      <span class="when"><strong>Ask the code.</strong> Find where things live without reading whole files.</span>
+      <span class="ex">/smart-explore where is the retry logic</span>
+    </div>
+    <div class="row">
+      <span class="cmd">/dream</span>
+      <span class="when"><strong>Tidy memory now</strong> — same thing the 3:35 am run does.</span>
+      <span class="ex">/dream</span>
+    </div>
+  </div>
+
+  <div class="thumb">
+    <h3>Rule of thumb</h3>
+    <ul>
+      <li><b>unclear</b> <span>/brainstorm</span></li>
+      <li><b>decide</b> <span>/ultrathink</span></li>
+      <li><b>build</b> <span>/manager</span></li>
+      <li><b>sweep</b> <span>/ultracode</span></li>
+      <li><b>broken</b> <span>/debug</span></li>
+      <li><b>high-stakes</b> <span>/fable</span></li>
+      <li><b>long grind</b> <span>/goal</span></li>
+      <li><b>recall</b> <span>/graphify</span></li>
+    </ul>
+  </div>
+
+  <footer>work normally → claude-mem records → dream distills nightly → graphify re-maps weekly → every session starts smarter</footer>
+</div>
