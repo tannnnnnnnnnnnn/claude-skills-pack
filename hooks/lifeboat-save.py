@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Lifeboat PreCompact hook: snapshot in-flight task state before compaction.
+"""Lifeboat save: snapshot in-flight task state. Deterministic, no LLM, no tokens.
 
-Deterministic — no LLM calls, no tokens, runs in milliseconds.
-Writes ~/.claude/lifeboat/<session_id>.md + a .pending marker that the
-UserPromptSubmit hook (lifeboat-restore.py) injects once, then clears.
+Called by the PreCompact hook (writes snapshot + .pending marker) and by
+lifeboat-restore.py's early-save path with --no-pending (snapshot only).
+Writes ~/.claude/lifeboat/<session_id>.md.
 """
 import json
 import os
@@ -15,10 +15,21 @@ from pathlib import Path
 LIFEBOAT_DIR = Path.home() / ".claude" / "lifeboat"
 MAX_USER_MSGS = 8
 MAX_FILES = 20
+JUNK_PREFIXES = (
+    "<system-reminder", "[SYSTEM", "<task-notification", "<command-",
+    "<local-command", "Stop hook feedback", "[Request interrupted",
+    "Base directory for this skill", "Caveat:", "Tool loaded",
+)
 
 
-def tail_transcript(path, session_id):
-    """Extract user intent trail, edited files, and last assistant text."""
+def clean_user_text(txt):
+    txt = txt.strip()
+    if not txt or txt.startswith(JUNK_PREFIXES):
+        return None
+    return txt[:250]
+
+
+def tail_transcript(path):
     user_msgs, edited, last_assistant = [], [], ""
     try:
         lines = Path(path).read_text(encoding="utf-8", errors="replace").splitlines()
@@ -32,15 +43,16 @@ def tail_transcript(path, session_id):
         t = d.get("type")
         msg = d.get("message") or {}
         content = msg.get("content")
-        if t == "user" and isinstance(content, str) and content.strip():
-            if not content.startswith(("<system-reminder", "[SYSTEM", "<task-notification")):
-                user_msgs.append(content.strip()[:250])
+        if t == "user" and isinstance(content, str):
+            c = clean_user_text(content)
+            if c:
+                user_msgs.append(c)
         elif t == "user" and isinstance(content, list):
             for c in content:
                 if isinstance(c, dict) and c.get("type") == "text":
-                    txt = c.get("text", "").strip()
-                    if txt and not txt.startswith(("<system-reminder", "[SYSTEM", "<task-notification")):
-                        user_msgs.append(txt[:250])
+                    cl = clean_user_text(c.get("text", ""))
+                    if cl:
+                        user_msgs.append(cl)
         elif t == "assistant" and isinstance(content, list):
             for c in content:
                 if isinstance(c, dict):
@@ -64,6 +76,7 @@ def git_state(cwd):
 
 
 def main():
+    no_pending = "--no-pending" in sys.argv
     try:
         data = json.load(sys.stdin)
     except Exception:
@@ -73,12 +86,13 @@ def main():
     transcript = data.get("transcript_path", "")
     cwd = data.get("cwd", os.getcwd())
     trigger = data.get("trigger", "auto")
+    label = "early-save" if no_pending else f"{trigger} compaction"
 
-    users, edited, assistant = tail_transcript(transcript, session)
+    users, edited, assistant = tail_transcript(transcript)
     git = git_state(cwd)
 
     stamp = time.strftime("%Y-%m-%d %H:%M")
-    parts = [f"# Lifeboat snapshot — {stamp} ({trigger} compaction)", ""]
+    parts = [f"# Lifeboat snapshot — {stamp} ({label})", ""]
     parts.append("## Recent user intent (oldest → newest)")
     parts += [f"- {m}" for m in users] or ["- (none captured)"]
     if edited:
@@ -90,9 +104,9 @@ def main():
 
     LIFEBOAT_DIR.mkdir(parents=True, exist_ok=True)
     (LIFEBOAT_DIR / f"{session}.md").write_text("\n".join(parts), encoding="utf-8")
-    (LIFEBOAT_DIR / f"{session}.pending").write_text(stamp, encoding="utf-8")
+    if not no_pending:
+        (LIFEBOAT_DIR / f"{session}.pending").write_text(stamp, encoding="utf-8")
 
-    # prune snapshots older than 7 days
     cutoff = time.time() - 7 * 86400
     for f in LIFEBOAT_DIR.glob("*.md"):
         if f.stat().st_mtime < cutoff:

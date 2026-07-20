@@ -61,6 +61,11 @@ if not any("lifeboat-restore" in h.get("command", "") for m in ups for h in m.ge
     ups.append({"hooks": [{"type": "command", "command": restore_cmd}]})
     print("  settings: lifeboat UserPromptSubmit hook added")
 
+ss = hooks.setdefault("SessionStart", [])
+if not any("lifeboat-restore" in h.get("command", "") for m in ss for h in m.get("hooks", [])):
+    ss.append({"matcher": "compact", "hooks": [{"type": "command", "command": restore_cmd}]})
+    print("  settings: lifeboat SessionStart(compact) hook added")
+
 stop = hooks.setdefault("Stop", [])
 dream_cmd = 'bash $HOME/.claude/skills/dream/should-dream.sh >/dev/null 2>&1 && touch $HOME/.claude/.dream-pending; exit 0'
 if not any("should-dream" in h.get("command", "") for m in stop for h in m.get("hooks", [])):
