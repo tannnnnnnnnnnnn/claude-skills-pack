@@ -82,7 +82,6 @@ After memory consolidation, incrementally refresh the AI Brain vault
 graph (only new/changed notes are re-extracted — cached files are free):
 
 ```bash
-# EDIT THIS PATH to your own Obsidian vault (or delete Phase 5 if you don't use graphify)
 cd "$HOME/Desktop/AI Brain" && export PATH="$HOME/.local/bin:$PATH"
 ```
 
