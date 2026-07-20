@@ -66,6 +66,7 @@ to your own vault (or delete the graph steps if you skip graphify).
 - **claude-mem** — automatic session memory. Tip: `CLAUDE_MEM_TELEMETRY=0`
   disables its default-on anonymous analytics.
 - **caveman** — token-saving reply compression (JuliusBrussee/caveman).
+- **claude-video /watch** — lets Claude watch videos (bradautomates/claude-video); needs yt-dlp + ffmpeg.
 
 ## The loop, once everything is on
 
