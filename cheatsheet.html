@@ -147,6 +147,11 @@
       <span class="when">Terse replies, ~65% fewer output tokens. Always on via CLAUDE.md.</span>
       <span class="sched">always</span>
     </div>
+    <div class="row auto">
+      <span class="cmd">lifeboat</span>
+      <span class="when">Saves your task state right before Claude compresses a full chat, and restores it after. Manual checkpoint: <strong>/lifeboat</strong>.</span>
+      <span class="sched">at ~90% full</span>
+    </div>
   </div>
 
   <h2>Think &amp; decide</h2>
@@ -222,6 +227,11 @@
       <span class="cmd">/smart-explore</span>
       <span class="when"><strong>Ask the code.</strong> Find where things live without reading whole files.</span>
       <span class="ex">/smart-explore where is the retry logic</span>
+    </div>
+    <div class="row">
+      <span class="cmd">/watch</span>
+      <span class="when"><strong>Ask a video.</strong> Claude downloads it, reads the frames, pulls the transcript, then answers.</span>
+      <span class="ex">/watch https://youtu.be/... summarize this</span>
     </div>
     <div class="row">
       <span class="cmd">/dream</span>
