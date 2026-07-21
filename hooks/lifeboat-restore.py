@@ -41,15 +41,19 @@ def last_context_tokens(transcript):
     return 0
 
 
-def newest_snapshot_for_cwd(cwd, exclude="", max_age=24 * 3600):
-    """Most recent snapshot .md whose recorded cwd matches, within max_age."""
+def newest_snapshot_for_cwd(cwd, max_age=24 * 3600):
+    """Most recent snapshot .md whose recorded cwd matches, within max_age.
+
+    Deliberately does NOT exclude the current session: /clear and /resume
+    both preserve session_id (only a brand-new window gets a new one), so
+    excluding "self" would hide a snapshot the same session just wrote
+    moments ago via /lifeboat right before /clear.
+    """
     if not cwd:
         return None
     best, best_ts = None, 0
     now = __import__("time").time()
     for meta in LIFEBOAT_DIR.glob("*.meta"):
-        if meta.stem == exclude:
-            continue
         try:
             m = json.loads(meta.read_text())
         except Exception:
@@ -77,23 +81,40 @@ def main():
     marker = LIFEBOAT_DIR / f"{session}.pending"
     snap = LIFEBOAT_DIR / f"{session}.md"
 
-    # New-window handoff: a fresh session in a project auto-loads the most
-    # recent snapshot from that SAME project (different prior session, <24h).
+    # Cross-session / cross-clear handoff: works identically for a brand-new
+    # chat window (new session_id) and for /clear or /resume in the same
+    # window (session_id typically persists across those) — either way we
+    # look for the newest snapshot in this cwd and inject it if it's newer
+    # than the last one this session_id already saw.
     if event == "SessionStart" and data.get("source") in ("startup", "clear", "resume"):
-        picked = newest_snapshot_for_cwd(data.get("cwd", ""), exclude=session)
+        picked = newest_snapshot_for_cwd(data.get("cwd", ""))
         if picked:
-            offered = LIFEBOAT_DIR / f"{session}.offered"
-            if not offered.exists():
-                offered.write_text("1")
+            picked_ts = picked.stat().st_mtime
+            offers = LIFEBOAT_DIR / ".session-offers.json"
+            try:
+                seen = json.loads(offers.read_text()) if offers.exists() else {}
+            except Exception:
+                seen = {}
+            if seen.get(session, 0) < picked_ts:
+                seen[session] = picked_ts
+                try:
+                    LIFEBOAT_DIR.mkdir(parents=True, exist_ok=True)
+                    offers.write_text(json.dumps(seen))
+                except Exception:
+                    pass
                 content = picked.read_text(encoding="utf-8", errors="replace")
                 print(json.dumps({"hookSpecificOutput": {
                     "hookEventName": event,
                     "additionalContext": (
-                        "New session in a project with a recent lifeboat snapshot from "
-                        "an earlier chat. Continue from where that work left off:\n\n" + content
+                        "This project has a recent lifeboat snapshot (from this chat "
+                        "before /clear, or from an earlier chat in the same folder). "
+                        "Continue from where that work left off:\n\n" + content
                     ),
                 }}))
-        sys.exit(0)
+                sys.exit(0)
+        # Nothing new to offer via cwd-lookup — still check this session's own
+        # pending compaction marker below (e.g. a /resume of a session that
+        # compacted right before the app closed).
 
     # Restore path: inject once after compaction, whichever event fires first.
     if session and marker.exists() and snap.exists():
