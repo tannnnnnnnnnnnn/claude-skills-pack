@@ -30,6 +30,25 @@ few, short, and low-context. Only distilled results enter your context.
 sonnet → (last resort) yourself. Escalate a tier only when the cheaper one
 genuinely can't meet the standard, and say why.
 
+## The fork/model gate — apply BEFORE picking a worker
+
+Before routing a sub-task to any worker, answer two questions. This decides
+whether to isolate it (no conversation history) and which model tier it
+needs — independent of the routing table above:
+
+| Needs this conversation's context? | Needs frontier reasoning? | What to do |
+|---|---|---|
+| No  | No  | **Isolate + cheap.** Dispatch via `Agent` (already isolated by default — no inherited history) with `model: haiku`. If this exact sub-task pattern recurs, define it as a real skill with `context: fork` + `agent: general-purpose` (or `Explore` for pure search) so it's reusable, not re-typed. |
+| Yes | No  | **Stay in-thread, downshift model.** Don't dispatch — delegating would either lose the needed context or cost just as much to paste it in. Instead do this turn yourself at a cheap tier (session `/model` or a per-skill `model:` override), keeping the thread intact. |
+| No  | Yes | **Isolate, keep the model strong.** Dispatch via `Agent`/a `context: fork` skill, but do NOT downgrade the model — pass `model: sonnet`/`fable` or let the chosen `agent:` type's own model stand. |
+| Yes | Yes | **Main-thread work, no delegation.** This is your job (the manager/Fable). Frontier judgment on live context can't be forked away. |
+
+Key fact this table relies on: an `Agent` tool dispatch is **already
+isolated** by default — no inherited conversation, prompt must be
+self-contained. So "isolate" is usually free; the real decision per
+sub-task is just **which model tier**, and whether the sub-task can be
+isolated at all without losing context it actually needs.
+
 ## Loop
 
 1. **Plan (you, silently, low-context).** Decompose into focused,
@@ -37,16 +56,20 @@ genuinely can't meet the standard, and say why.
    pass, files in scope, evidence to quote). Keep planning terse — planning
    is the one thing that must be you, so spend little context on it.
 
-2. **Route GPT-first.** For each sub-task pick the cheapest worker per the
-   bias order:
-   - Almost everything → Codex Sol via `/codex:rescue`. One concern per
-     handoff, narrow self-contained brief. Bundle related work into a single
-     Codex session rather than many Claude turns.
+2. **Gate, then route GPT-first.** For each sub-task, run it through the
+   fork/model gate above, then pick the cheapest worker that clears it:
+   - Almost everything (no-context, no-frontier) → Codex Sol via
+     `/codex:rescue`. One concern per handoff, narrow self-contained brief.
+     Bundle related work into a single Codex session rather than many
+     Claude turns.
    - Only escalate to Codex 5.6 high when Sol's output fails the standard.
-   - Reading/extraction Codex can't reach → haiku/sonnet fan-out, **one
-     message, multiple Agent calls** (parallel). Big fan-outs → `Workflow`
-     with `agent(..., {model: 'haiku'})`.
-   - Frontier judgment on raw material → you, briefly.
+   - Reading/extraction Codex can't reach, no-context/no-frontier → haiku/
+     sonnet fan-out, **one message, multiple Agent calls** (parallel). Big
+     fan-outs → `Workflow` with `agent(..., {model: 'haiku'})`.
+   - Needs-context/no-frontier → don't delegate; do it yourself at a cheap
+     model tier for that turn.
+   - Frontier judgment on raw material (needs-context/needs-frontier) →
+     you, briefly, at full capability.
 
 3. **Inspect (you, cheaply).** Verify each result: read the diff summary,
    run tests, check scope. No blind trust of Codex OR Claude workers. Prefer
@@ -81,6 +104,32 @@ genuinely can't meet the standard, and say why.
 - Prefer Codex Sol; escalate tiers only when forced, and say why.
 - Verify everything before accepting. You sign off on the final result.
 - Surgical changes only — every changed line traces to the request.
+
+## Defining a `context: fork` skill for a recurring sub-task
+
+When the same no-context sub-task keeps recurring (e.g. "explore this repo
+for X", "run the test suite and summarize failures"), don't keep re-typing
+an `Agent` dispatch — write it once as a skill:
+
+```yaml
+---
+name: some-recurring-check
+description: What it does and when to use it
+context: fork
+agent: Explore        # or general-purpose, Plan, or a custom subagent
+model: haiku           # only if the agent type's default model isn't cheap enough
+disable-model-invocation: true   # if it should only run when explicitly called
+---
+
+The task, written as direct instructions — this body becomes the
+subagent's entire prompt. It gets no conversation history, so it must be
+fully self-contained.
+```
+
+`context: fork` runs the skill body as the subagent's task with **no
+access to conversation history** — confirmed current behavior
+(code.claude.com/docs/en/skills, "Run skills in a subagent"). The `agent:`
+field's own model/tools apply unless overridden.
 
 Related: `codex-orchestrate`, `plan-big-execute-small`, `estimate`
 (pre-flight cost), `lifeboat` (checkpoint before a fresh window).
