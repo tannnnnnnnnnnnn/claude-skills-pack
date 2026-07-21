@@ -104,6 +104,9 @@ def main():
 
     LIFEBOAT_DIR.mkdir(parents=True, exist_ok=True)
     (LIFEBOAT_DIR / f"{session}.md").write_text("\n".join(parts), encoding="utf-8")
+    # sidecar so a NEW window in the same project can find this snapshot
+    (LIFEBOAT_DIR / f"{session}.meta").write_text(
+        json.dumps({"cwd": cwd, "ts": time.time(), "label": label}), encoding="utf-8")
     if not no_pending:
         (LIFEBOAT_DIR / f"{session}.pending").write_text(stamp, encoding="utf-8")
 
@@ -112,6 +115,7 @@ def main():
         if f.stat().st_mtime < cutoff:
             f.unlink(missing_ok=True)
             (LIFEBOAT_DIR / f"{f.stem}.pending").unlink(missing_ok=True)
+            (LIFEBOAT_DIR / f"{f.stem}.meta").unlink(missing_ok=True)
     sys.exit(0)
 
 

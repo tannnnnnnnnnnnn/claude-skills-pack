@@ -41,6 +41,30 @@ def last_context_tokens(transcript):
     return 0
 
 
+def newest_snapshot_for_cwd(cwd, exclude="", max_age=24 * 3600):
+    """Most recent snapshot .md whose recorded cwd matches, within max_age."""
+    if not cwd:
+        return None
+    best, best_ts = None, 0
+    now = __import__("time").time()
+    for meta in LIFEBOAT_DIR.glob("*.meta"):
+        if meta.stem == exclude:
+            continue
+        try:
+            m = json.loads(meta.read_text())
+        except Exception:
+            continue
+        if m.get("cwd") != cwd:
+            continue
+        ts = m.get("ts", 0)
+        if now - ts > max_age:
+            continue
+        md = LIFEBOAT_DIR / f"{meta.stem}.md"
+        if md.exists() and ts > best_ts:
+            best, best_ts = md, ts
+    return best
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -52,6 +76,24 @@ def main():
     transcript = data.get("transcript_path", "")
     marker = LIFEBOAT_DIR / f"{session}.pending"
     snap = LIFEBOAT_DIR / f"{session}.md"
+
+    # New-window handoff: a fresh session in a project auto-loads the most
+    # recent snapshot from that SAME project (different prior session, <24h).
+    if event == "SessionStart" and data.get("source") in ("startup", "clear", "resume"):
+        picked = newest_snapshot_for_cwd(data.get("cwd", ""), exclude=session)
+        if picked:
+            offered = LIFEBOAT_DIR / f"{session}.offered"
+            if not offered.exists():
+                offered.write_text("1")
+                content = picked.read_text(encoding="utf-8", errors="replace")
+                print(json.dumps({"hookSpecificOutput": {
+                    "hookEventName": event,
+                    "additionalContext": (
+                        "New session in a project with a recent lifeboat snapshot from "
+                        "an earlier chat. Continue from where that work left off:\n\n" + content
+                    ),
+                }}))
+        sys.exit(0)
 
     # Restore path: inject once after compaction, whichever event fires first.
     if session and marker.exists() and snap.exists():

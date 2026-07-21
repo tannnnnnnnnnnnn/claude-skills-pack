@@ -69,7 +69,7 @@ if not any("lifeboat-restore" in h.get("command", "") for m in ups for h in m.ge
 
 ss = hooks.setdefault("SessionStart", [])
 if not any("lifeboat-restore" in h.get("command", "") for m in ss for h in m.get("hooks", [])):
-    ss.append({"matcher": "compact", "hooks": [{"type": "command", "command": restore_cmd}]})
+    ss.append({"matcher": "compact|startup|clear|resume", "hooks": [{"type": "command", "command": restore_cmd}]})
     print("  settings: lifeboat SessionStart(compact) hook added")
 
 stop = hooks.setdefault("Stop", [])
