@@ -34,6 +34,7 @@ Restart Claude Code afterwards. Re-running is safe.
 | `/plan-big-execute-small` | delegate bulk reading to cheap parallel agents |
 | `/stop-slop` | strip AI-writing tells from prose |
 | `/lifeboat` | manual checkpoint of in-flight task state (auto version runs via hooks) |
+| `/estimate` | pre-task token cost + % of weekly/5h limit, before you spend it |
 
 ### Hooks (`hooks/`)
 - **safety-net.py** — blocks `rm -rf` on dangerous targets, force-push
@@ -44,6 +45,10 @@ Restart Claude Code afterwards. Re-running is safe.
   in-flight task state (recent intent, edited files, git state) with zero
   token cost; restore injects it once on your next message so work
   continues where it left off. Pattern adapted from u-ichi/compact-plus.
+
+- **lifeboat-restore** also carries a *context-cost nudge*: crossing ~350k/600k context injects a one-line warning that each message is now re-reading the whole context (the #1 token drain).
+
+Budget tooling (`budget/`): `budget.py` measures token use since your weekly reset from local transcripts (zero API cost) and calibrates your plan ceiling from a UI reading; `/estimate` uses it. Your real `calibration.json` stays local; the repo ships a template.
 
 All locally authored, tested, short Python you can read yourself.
 

@@ -70,7 +70,7 @@ def main():
         }))
         sys.exit(0)
 
-    # Early-save path: only meaningful on prompt submit with a transcript.
+    # Early-save + context-cost warning: prompt submit with a transcript.
     if event == "UserPromptSubmit" and session and transcript and os.path.exists(transcript):
         used = last_context_tokens(transcript)
         if used > 0:
@@ -83,7 +83,48 @@ def main():
                     )
                 except Exception:
                     pass
+            # Context-cost nudge: fire once per threshold band crossed.
+            warn = context_warning(session, used)
+            if warn:
+                print(json.dumps({
+                    "hookSpecificOutput": {
+                        "hookEventName": event,
+                        "additionalContext": warn,
+                    }
+                }))
     sys.exit(0)
+
+
+WARN_STATE = LIFEBOAT_DIR / ".warned"
+BANDS = [(600_000, "600k"), (350_000, "350k")]
+
+
+def context_warning(session, used):
+    """Return a one-line nudge the first time this session crosses a band."""
+    band = next((tok for tok, _ in BANDS if used >= tok), 0)
+    if not band:
+        return None
+    try:
+        seen = json.loads(WARN_STATE.read_text()) if WARN_STATE.exists() else {}
+    except Exception:
+        seen = {}
+    if seen.get(session, 0) >= band:
+        return None
+    seen[session] = band
+    try:
+        LIFEBOAT_DIR.mkdir(parents=True, exist_ok=True)
+        WARN_STATE.write_text(json.dumps(seen))
+    except Exception:
+        pass
+    label = dict(BANDS)[band]
+    eff = int(used * 0.1)
+    return (
+        f"[budget nudge] This session is at ~{label} context — every message now "
+        f"re-reads it (~{eff:,} effective tokens/turn against the weekly limit). "
+        "For heavy work from here, consider /clear to start fresh (lifeboat preserves "
+        "state), or route coding-heavy work through /manager → Codex (separate quota). "
+        "Surface this to the user briefly."
+    )
 
 
 if __name__ == "__main__":

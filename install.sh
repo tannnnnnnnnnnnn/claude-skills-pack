@@ -30,6 +30,12 @@ for h in safety-net.py lifeboat-save.py lifeboat-restore.py; do
   echo "  hook $h: installed"
 done
 
+# 2b. Budget tooling for /estimate
+mkdir -p "$CLAUDE_DIR/budget"
+cp "$PACK_DIR/budget/budget.py" "$CLAUDE_DIR/budget/budget.py"
+[ -f "$CLAUDE_DIR/budget/calibration.json" ] || cp "$PACK_DIR/budget/calibration.example.json" "$CLAUDE_DIR/budget/calibration.json"
+echo "  budget: budget.py + calibration installed"
+
 # 3. Wire hooks into settings.json (merge, never clobber)
 python3 - "$CLAUDE_DIR" <<'PY'
 import json, sys, os

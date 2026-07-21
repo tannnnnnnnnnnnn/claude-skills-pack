@@ -8,7 +8,7 @@ CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 cd "$REPO_DIR"
 
 # Skills tracked by this pack (personal/third-party-installed ones stay out)
-SKILLS="brainstorm codex-orchestrate debug dream fable lifeboat manager plan-big-execute-small stop-slop ultracode ultrathink worktree"
+SKILLS="brainstorm codex-orchestrate debug dream estimate fable lifeboat manager plan-big-execute-small stop-slop ultracode ultrathink worktree"
 
 for s in $SKILLS; do
   if [ -d "$CLAUDE_DIR/skills/$s" ]; then
@@ -17,6 +17,7 @@ for s in $SKILLS; do
 done
 
 cp "$CLAUDE_DIR/hooks/safety-net.py" hooks/safety-net.py 2>/dev/null || true
+cp "$CLAUDE_DIR/budget/budget.py" budget/budget.py 2>/dev/null || true
 cp "$CLAUDE_DIR/scheduled-tasks/dream-nightly/SKILL.md" routines/dream-nightly.md 2>/dev/null || true
 cp "$CLAUDE_DIR/scheduled-tasks/graphify-weekly-review/SKILL.md" routines/graphify-weekly-review.md 2>/dev/null || true
 
