@@ -72,6 +72,7 @@ to your own vault (or delete the graph steps if you skip graphify).
   disables its default-on anonymous analytics.
 - **caveman** — token-saving reply compression (JuliusBrussee/caveman).
 - **claude-video /watch** — lets Claude watch videos (bradautomates/claude-video); needs yt-dlp + ffmpeg.
+- **rtk** (rtk-ai/rtk) — PreToolUse hook that rewrites Bash commands (git status/diff/log, cat, grep, test runners) to route through a compressing proxy, cutting 60-90% off their output tokens before they hit context. Install: `curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh` then `rtk init -g` (review the script first — verifies checksums, no telemetry unless you opt in). Wire into settings.json as a second PreToolUse/Bash entry AFTER safety-net, so destructive-command blocking still sees the raw command first.
 
 ## The loop, once everything is on
 
