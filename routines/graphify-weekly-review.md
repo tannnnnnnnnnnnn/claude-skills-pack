@@ -10,8 +10,10 @@ Vault: ~/Desktop/AI Brain (Obsidian). Graph lives in ~/Desktop/AI Brain/graphify
 ## TOKEN BUDGET (hard rules)
 - Target under ~120k tokens per run — this is the week's ONE deep pass, it may work, but not unboundedly.
 - Zero-work fast path FIRST: if no vault files changed since last Sunday's run (compare mtimes to graphify-out/.last-weekly, or to graph.json mtime if absent), write a one-line "no changes this week" log entry and end. No rebuild, no report.
-- Semantic extraction cap: at most 3 subagent chunks (~60-75 changed files). If more files changed, extract the 3 chunks covering the most recently modified files, and list the remainder as deferred in the report — next week catches them.
-- Dispatch extraction subagents with a cheaper model when available; chunks are mechanical extraction, not judgment.
+- Semantic extraction cap: at most **90 changed files**, chunked at **8-10 files per subagent** (so ~9-11 chunks, not 3). If more files changed, extract the chunks covering the most recently modified files and list the remainder as deferred in the report — next week catches them.
+- **Never exceed 10 files per chunk.** On 2026-07-20 a run at 26 files/chunk averaged 1.5 nodes/file against the good build's 3.3, and because graphify's merge *replaces* every node whose `source_file` appears in the new extraction, the thin result would have deleted 165 net curated nodes. A shallow re-extraction is subtractive, not merely incomplete.
+- **Dry-run every merge before writing it.** Count existing nodes whose `source_file` appears in the new extraction, compare against the new node count, and abort on any projected shrink. Keep files contiguous within a chunk (same directory where possible) so cross-file edges survive.
+- Use a mid-tier model (sonnet) for extraction, not the cheapest available — depth is the failure mode here, and haiku at any chunk size has not yet been shown to clear the bar.
 - Re-clustering, labeling, and the report are cheap — always fine once extraction is within cap.
 
 ## Step 1 — Snapshot last week
