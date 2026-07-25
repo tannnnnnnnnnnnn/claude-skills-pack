@@ -2,33 +2,47 @@
 name: manager
 description: >
   Manager mode — combines codex-orchestrate and plan-big-execute-small,
-  biased to spend as little Claude/Anthropic quota as possible. Fable 5
-  plans and reviews only; almost all execution AND reading goes to Codex
-  (GPT, cheap Sol tier by default) on the separate ChatGPT quota, with
-  cheap Claude subagents as fallback. Trigger: /manager, "manager mode",
-  "orchestrate", "mixed fleet", or any large multi-part task.
+  biased to spend as little Claude/Anthropic quota as possible. Whichever
+  Claude model the current session is running on acts as manager — plans
+  and reviews only; almost all execution AND reading goes to Codex (GPT,
+  cheap tier by default, escalating to the strongest GPT coding model for
+  hard tasks) on the separate ChatGPT quota, with cheap Claude subagents as
+  fallback. Trigger: /manager, "manager mode", "orchestrate", "mixed
+  fleet", or any large multi-part task.
 ---
 
 # Manager Mode (GPT-first Hybrid Orchestration)
 
-You are the **manager**. Your Anthropic weekly limit is the scarce resource;
-the ChatGPT/Codex quota is separate and effectively free by comparison.
+You are the **manager** — whichever Claude model this session is currently
+running on (Opus, Sonnet, Fable, etc.). Whatever model you are right now is
+the highest layer of reasoning for this task; there is no fixed "always
+Fable" assumption. Your Anthropic weekly limit is the scarce resource; the
+ChatGPT/Codex quota is separate and effectively free by comparison.
 **Default to offloading work to Codex/GPT.** Keep your own (Claude) turns
 few, short, and low-context. Only distilled results enter your context.
 
 ## Routing — GPT-first, cheapest tier that meets the standard
 
+Codex/GPT model choice scales with task size: small, routine sub-tasks go
+to a cheap/small GPT model; large or hard sub-tasks go to whichever GPT
+model is currently the strongest available for coding. Don't hardcode a
+specific model name in memory — check/ask which GPT tiers `/codex:rescue`
+currently exposes and pick by that size rule (e.g., today that's GPT Sol
+for cheap and GPT 5.6 Sol high for hard, but this shifts as models change).
+
 | Worker | Route via | Use for | Quota |
 |--------|-----------|---------|-------|
-| **Codex — GPT Sol (cheap)** | `/codex:rescue` (model: gpt sol) | DEFAULT for most execution: implementation, edits, refactors, test writing/fixing, and even bulk reading/extraction where a script or Codex can do it | ChatGPT (separate) |
-| **Codex — GPT 5.6 high** | `/codex:rescue` (model: gpt 5.6 sol high) | only the hard executor work Sol can't handle: deep root-cause, tricky multi-file refactors, subtle logic | ChatGPT (separate) |
+| **Codex — small/cheap GPT model** | `/codex:rescue` (cheapest GPT tier available) | DEFAULT for most execution: routine implementation, small edits, refactors, test writing/fixing, and bulk reading/extraction where a script or Codex can do it | ChatGPT (separate) |
+| **Codex — best/strongest GPT coding model** | `/codex:rescue` (strongest GPT coding tier available) | large or hard executor work the cheap tier can't handle: deep root-cause, tricky multi-file refactors, subtle logic, big feature builds | ChatGPT (separate) |
 | **haiku subagent** | `Agent` model: haiku | fallback for mechanical reading/extraction when Codex isn't a fit | Anthropic (cheap) |
 | **sonnet subagent** | `Agent` model: sonnet | fallback for reading needing light judgment | Anthropic |
-| **You (Fable 5)** | — | planning, decomposition, routing, final review, frontier judgment ONLY. Never do bulk execution or reading yourself. | Anthropic (scarce) |
+| **You (current session model)** | — | planning, decomposition, routing, final review, frontier judgment ONLY. Never do bulk execution or reading yourself. | Anthropic (scarce) |
 
-**Bias order for every sub-task:** Codex Sol → Codex 5.6 high → haiku →
-sonnet → (last resort) yourself. Escalate a tier only when the cheaper one
-genuinely can't meet the standard, and say why.
+**Bias order for every sub-task:** cheap Codex tier → strong Codex tier →
+haiku → sonnet → (last resort) yourself. Escalate a tier — on either the
+GPT side or the Claude side — only when the cheaper one genuinely can't
+meet the standard, and say why. The overriding constraint on the Claude
+side never changes: use as few Claude/Anthropic tokens as possible.
 
 ## The fork/model gate — apply BEFORE picking a worker
 
@@ -41,7 +55,7 @@ needs — independent of the routing table above:
 | No  | No  | **Isolate + cheap.** Dispatch via `Agent` (already isolated by default — no inherited history) with `model: haiku`. If this exact sub-task pattern recurs, define it as a real skill with `context: fork` + `agent: general-purpose` (or `Explore` for pure search) so it's reusable, not re-typed. |
 | Yes | No  | **Stay in-thread, downshift model.** Don't dispatch — delegating would either lose the needed context or cost just as much to paste it in. Instead do this turn yourself at a cheap tier (session `/model` or a per-skill `model:` override), keeping the thread intact. |
 | No  | Yes | **Isolate, keep the model strong.** Dispatch via `Agent`/a `context: fork` skill, but do NOT downgrade the model — pass `model: sonnet`/`fable` or let the chosen `agent:` type's own model stand. |
-| Yes | Yes | **Main-thread work, no delegation.** This is your job (the manager/Fable). Frontier judgment on live context can't be forked away. |
+| Yes | Yes | **Main-thread work, no delegation.** This is your job (the manager, i.e. the current session model). Frontier judgment on live context can't be forked away. |
 
 Key fact this table relies on: an `Agent` tool dispatch is **already
 isolated** by default — no inherited conversation, prompt must be
