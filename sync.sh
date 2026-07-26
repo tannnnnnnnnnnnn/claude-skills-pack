@@ -16,7 +16,9 @@ for s in $SKILLS; do
   fi
 done
 
-cp "$CLAUDE_DIR/hooks/safety-net.py" hooks/safety-net.py 2>/dev/null || true
+for h in safety-net lifeboat-save lifeboat-restore minimal-mode; do
+  cp "$CLAUDE_DIR/hooks/$h.py" "hooks/$h.py" 2>/dev/null || true
+done
 cp "$CLAUDE_DIR/budget/budget.py" budget/budget.py 2>/dev/null || true
 cp "$CLAUDE_DIR/scheduled-tasks/dream-nightly/SKILL.md" routines/dream-nightly.md 2>/dev/null || true
 cp "$CLAUDE_DIR/scheduled-tasks/graphify-weekly-review/SKILL.md" routines/graphify-weekly-review.md 2>/dev/null || true
