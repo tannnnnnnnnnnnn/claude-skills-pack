@@ -9,7 +9,7 @@ Vault: ~/Desktop/AI Brain (Obsidian). Graph lives in ~/Desktop/AI Brain/graphify
 
 ## TOKEN BUDGET (hard rules)
 - Target under ~120k tokens per run — this is the week's ONE deep pass, it may work, but not unboundedly.
-- Zero-work fast path FIRST: if no vault files changed since last Sunday's run (compare mtimes to graphify-out/.last-weekly, or to graph.json mtime if absent), write a one-line "no changes this week" log entry and end. No rebuild, no report.
+- Zero-work fast path FIRST: if no vault files changed since last Sunday's run (compare mtimes to graphify-out/.last-weekly, or to graph.json mtime if absent), run Step 2.5's check script (it costs almost nothing and catches a graph left stale by a prior run), write a one-line "no changes this week" log entry, and end. No rebuild, no report.
 - Semantic extraction cap: at most **90 changed files**, chunked at **8-10 files per subagent** (so ~9-11 chunks, not 3). If more files changed, extract the chunks covering the most recently modified files and list the remainder as deferred in the report — next week catches them.
 - **Never exceed 10 files per chunk.** On 2026-07-20 a run at 26 files/chunk averaged 1.5 nodes/file against the good build's 3.3, and because graphify's merge *replaces* every node whose `source_file` appears in the new extraction, the thin result would have deleted 165 net curated nodes. A shallow re-extraction is subtractive, not merely incomplete.
 - **Dry-run every merge before writing it.** Count existing nodes whose `source_file` appears in the new extraction, compare against the new node count, and abort on any projected shrink. Keep files contiguous within a chunk (same directory where possible) so cross-file edges survive.
@@ -25,17 +25,37 @@ cd "$HOME/Desktop/AI Brain" && export PATH="$HOME/.local/bin:$PATH"
 ```
 Run the graphify skill's `--update` flow (incremental; cached files free; never ask for an API key), then `--cluster-only` (references/update.md) to re-run community detection. Re-label new/changed communities with 2-5 word names. Regenerate GRAPH_REPORT.md, run `graphify export html`, run the health-check diagnostics and note warnings. Touch graphify-out/.last-weekly when done.
 
+**Community indices are reassigned on every re-cluster, so hand-written labels land on the wrong groups after any graph edit.** Batch all node/edge surgery (Step 2.5) FIRST, then re-cluster and label once. On 2026-07-26 three small merges done one at a time moved the count 204 → 213 → 207 → 215 and forced 107 label rewrites, nearly all of it churn. After writing labels, also write the matching signature sidecar (`graphify-out/.graphify_labels.json.sig`, via `graphify.cluster.community_member_sigs`) or the next `cluster-only` discards the curated names and renames every community after its hub node.
+
+## Step 2.5 — Reconcile AMBIGUOUS edges the vault has already settled
+
+```bash
+python3 ~/.claude/scheduled-tasks/graphify-weekly-review/check_settled_ambiguity.py
+```
+
+Extraction never revisits a page once its content hash is cached, so an answer Tanmay gives on one wiki page never reaches AMBIGUOUS edges extracted from other pages. Nothing else surfaces the mismatch. On 2026-07-26 three identity questions — Harinath vs Harinitika, the unnamed DXA founder, and Obina vs Obinna — had all been confirmed in the wiki on 2026-07-21 and were still sitting AMBIGUOUS in the graph five days later.
+
+The script reports each AMBIGUOUS edge whose two endpoints are both named inside a vault confirmation note (`**Disambiguation (confirmed by Tanmay ...)**` or "confirmed by Tanmay" in prose). It reports; it does not edit. For each finding:
+
+- **Same person or thing** → merge the duplicate node into the canonical one: retarget its edges, drop self-loops and duplicate `(source, target, relation)` triples, promote retargeted AMBIGUOUS edges to EXTRACTED 1.0, then delete the merged node.
+- **Different things** → delete the false edge.
+- Back up `graph.json` first (`graph.json.bak-<topic>-YYYYMMDD`) and re-run `graphify diagnose multigraph` after.
+
+Leave two classes of node alone. Nodes whose label reproduces a page's own wording (`Obina (Obinna)`, because `wiki/projects/dxa-consulting.md` writes it that way) keep the source layer faithful. Nodes recording that a past report saw an open gap (`Unnamed DXA Founder Gap`) describe what that report said, not a separate entity; merging them rewrites the history of the graph's own reasoning.
+
+If the script finds nothing, say so in one line in the report and move on. Expect that to be the normal case.
+
 ## Step 3 — Weekly Brain Report
 Diff against the Step 1 snapshot; write ~/Desktop/AI Brain/Briefs/Weekly Brain Report YYYY-MM-DD.md (create Briefs/ if missing). Concise, proper English — full grammatical sentences, no filler:
 - Delta: nodes/edges/communities vs last week; which areas grew.
 - New surprising connections not in last week's report.
-- Knowledge gaps: AMBIGUOUS edges + weakly-connected nodes, each phrased as a 2-minute question Tanmay could answer to strengthen the brain.
+- Knowledge gaps: AMBIGUOUS edges + weakly-connected nodes, each phrased as a 2-minute question Tanmay could answer to strengthen the brain. Report what Step 2.5 reconciled separately from what is still genuinely open — an edge the vault already settled is a sync lag, not a gap, and asking Tanmay again wastes his time.
 - Stale zones: communities untouched 14+ days that cover time-sensitive topics (FDE course, engagements, POCs).
 - 3 suggested questions the graph can uniquely answer this week.
 - Anything deferred for budget (files not yet extracted).
 Append one line to ~/Desktop/AI Brain/log.md matching its format.
 
 ## Step 4 — Notification summary
-Max 5 lines: delta, best new connection, biggest gap, one recommended action, deferred count. If nothing changed all week: one line.
+Max 5 lines: delta, best new connection, biggest gap, one recommended action, deferred count. Mention Step 2.5 only when it found something. If nothing changed all week: one line.
 
-Constraints: never modify the vault's hand-curated wiki/, People/, or Meetings/ content — write only to Briefs/, log.md, and graphify-out/. Honor graphify's shrink-guard: if the rebuild would shrink graph.json, stop and report rather than forcing.
+Constraints: never modify the vault's hand-curated wiki/, People/, or Meetings/ content — write only to Briefs/, log.md, and graphify-out/. Step 2.5 edits graph.json only; if a finding implies a wiki page should change (a page titled with an ambiguous nickname, say), report it as a recommendation rather than editing. Honor graphify's shrink-guard: if the rebuild would shrink graph.json, stop and report rather than forcing.
