@@ -41,6 +41,24 @@ def last_context_tokens(transcript):
     return 0
 
 
+def canon(path):
+    """Canonical form of a path for cwd comparison.
+
+    Resolves symlinks and strips a trailing separator, so the same project
+    reached by different routes compares equal — e.g.
+    ~/Desktop/Job Apps/jobbot is a symlink to ~/jobbot, and a session
+    started through either must match a snapshot recorded under the other.
+    realpath() leaves a non-existent path unchanged, so snapshots whose
+    directory has since been deleted still compare by their literal path.
+    """
+    if not path:
+        return ""
+    try:
+        return os.path.normpath(os.path.realpath(path))
+    except Exception:
+        return os.path.normpath(path)
+
+
 def newest_snapshot_for_cwd(cwd, max_age=24 * 3600):
     """Most recent snapshot .md whose recorded cwd matches, within max_age.
 
@@ -51,6 +69,7 @@ def newest_snapshot_for_cwd(cwd, max_age=24 * 3600):
     """
     if not cwd:
         return None
+    target = canon(cwd)
     best, best_ts = None, 0
     now = __import__("time").time()
     for meta in LIFEBOAT_DIR.glob("*.meta"):
@@ -58,7 +77,7 @@ def newest_snapshot_for_cwd(cwd, max_age=24 * 3600):
             m = json.loads(meta.read_text())
         except Exception:
             continue
-        if m.get("cwd") != cwd:
+        if canon(m.get("cwd", "")) != target:
             continue
         ts = m.get("ts", 0)
         if now - ts > max_age:
