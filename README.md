@@ -73,6 +73,12 @@ to your own vault (or delete the graph steps if you skip graphify).
 - **caveman** — token-saving reply compression (JuliusBrussee/caveman).
 - **claude-video /watch** — lets Claude watch videos (bradautomates/claude-video); needs yt-dlp + ffmpeg.
 - **rtk** (rtk-ai/rtk) — PreToolUse hook that rewrites Bash commands (git status/diff/log, cat, grep, test runners) to route through a compressing proxy, cutting 60-90% off their output tokens before they hit context. Install: `curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh` then `rtk init -g` (review the script first — verifies checksums, no telemetry unless you opt in). Wire into settings.json as a second PreToolUse/Bash entry AFTER safety-net, so destructive-command blocking still sees the raw command first.
+- **agent-reach** (Panniantong/agent-reach) — installer/router giving an agent read access to 15 platforms (Twitter/X, Reddit, YouTube, GitHub, RSS, web, etc.) via upstream open-source CLIs; never a wrapper, your agent calls the upstream tools directly. Its own README's advertised install method is "paste this raw GitHub URL at your agent" — treated as untrusted (a remote file that can change after you read it), so install it yourself instead:
+  ```bash
+  python3 -m venv ~/.agent-reach-venv
+  ~/.agent-reach-venv/bin/pip install "git+https://github.com/Panniantong/agent-reach.git@<pinned-commit-sha>"
+  ```
+  Pin to a specific commit, not `main` — re-review before bumping. Then add the PATH wrapper below (`bin/agent-reach`) so `agent-reach` resolves without sourcing anything. Cookie-based platforms (Twitter, XiaoHongShu) require a manual Cookie-Editor export by the tool's own design — no code path reads your browser's cookie store automatically for those. Credentials land in `~/.agent-reach/config.yaml` (mode 600, symlink-safe atomic writes); review `agent_reach/cookie_extract.py` before trusting it with any other platform's cookies.
 
 ## The loop, once everything is on
 
