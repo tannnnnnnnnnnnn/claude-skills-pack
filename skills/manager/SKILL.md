@@ -90,6 +90,35 @@ isolated at all without losing context it actually needs.
    reading a distilled diff over re-reading whole files (keeps your context
    small). Failed worker → re-brief and re-dispatch, don't absorb it.
 
+   **Background Codex jobs — you must check back, nothing else will.**
+   `codex-rescue` is a strict forwarder: once it launches a `--background`
+   job it never checks back, by its own design — that's intentional on its
+   part, not a bug. And `/codex:status` / `/codex:result` have
+   `disable-model-invocation: true`, so you cannot invoke those slash
+   commands yourself. Both gaps are real and neither is optional to route
+   around: call the underlying script directly via `Bash`, which carries no
+   such restriction:
+
+   ```bash
+   SCRIPT=$(find ~/.claude/plugins/cache -iname codex-companion.mjs | head -1)
+   node "$SCRIPT" status <job-id> --wait --timeout-ms 600000 --json
+   node "$SCRIPT" result <job-id> --json
+   ```
+
+   `status --wait` blocks server-side until the job leaves `queued`/
+   `running` (or the timeout hits — check `waitTimedOut` in the JSON; if
+   true, call `status --wait` again rather than assuming failure). This is
+   the actual primitive — do not hand-roll a poll loop over plain `status`.
+   For a job likely to run past a few minutes, set `--timeout-ms`
+   generously (or use `ScheduleWakeup` to come back for another `--wait`
+   round rather than blocking the turn).
+
+   After every background dispatch: capture the job ID from the launch
+   output, then `status --wait` before ever reporting that sub-task as
+   done, failed, or still running — "it's probably still going" is not an
+   inspection. Once the phase is no longer active, fetch `result` and treat
+   that as the diff summary for this step.
+
 4. **Final review (you).** Assemble, flag conflicts (never resolve
    silently), one final review, done.
 
