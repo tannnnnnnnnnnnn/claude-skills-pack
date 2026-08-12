@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""Lifeboat restore + early-save. Runs on UserPromptSubmit AND SessionStart(compact).
+
+Restore: if a .pending marker exists for this session, inject the snapshot
+as additionalContext once, then delete the marker.
+
+Early-save (UserPromptSubmit only): read actual token usage from the
+transcript's last assistant entry; if the context is close to the point
+where Claude Code auto-compacts, refresh the snapshot (no marker) so state
+survives even if PreCompact never fires on this surface. Costs zero
+tokens — pure file reads.
+"""
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+LIFEBOAT_DIR = Path.home() / ".claude" / "lifeboat"
+SAVE = Path.home() / ".claude" / "hooks" / "lifeboat-save.py"
+SETTINGS = Path.home() / ".claude" / "settings.json"
+OUTPUT_RESERVE = 20_000  # Claude Code holds this back for output tokens
+COMPACT_MARGIN = 13_000  # the trigger sits this far under the effective window
+SAVE_LEAD = 12_000       # save this far ahead of the trigger
+
+
+def last_context_tokens(transcript):
+    """Actual context size from the newest usage block in the transcript tail."""
+    try:
+        size = os.path.getsize(transcript)
+        with open(transcript, "rb") as f:
+            f.seek(max(0, size - 400_000))
+            tail = f.read().decode("utf-8", errors="replace").splitlines()
+    except Exception:
+        return 0
+    for line in reversed(tail):
+        try:
+            d = json.loads(line)
+        except Exception:
+            continue
+        u = (d.get("message") or {}).get("usage")
+        if u:
+            return (u.get("input_tokens", 0) + u.get("cache_read_input_tokens", 0)
+                    + u.get("cache_creation_input_tokens", 0))
+    return 0
+
+
+def compact_trigger(used):
+    """Token count at which Claude Code will auto-compact this session.
+
+    Mirrors the CLI: the window is min(model window, autoCompactWindow),
+    then a 20k output reserve and a 13k margin come off the top. Reading
+    the setting rather than hardcoding it keeps this in step if the cap
+    is ever changed — a stale constant here silently disables the save.
+    """
+    try:
+        cap = json.loads(SETTINGS.read_text()).get("autoCompactWindow")
+    except Exception:
+        cap = None
+    model_window = 1_000_000 if used > 210_000 else 200_000
+    window = min(model_window, cap) if isinstance(cap, int) else model_window
+    return window - OUTPUT_RESERVE - COMPACT_MARGIN
+
+
+def compactions_so_far(transcript):
+    """How many times this session has already been auto-compacted."""
+    try:
+        with open(transcript, "rb") as f:
+            return f.read().count(b'"compact_boundary"')
+    except Exception:
+        return 0
+
+
+def canon(path):
+    """Canonical form of a path for cwd comparison.
+
+    Resolves symlinks and strips a trailing separator, so the same project
+    reached by different routes compares equal — a project directory that is
+    a symlink to somewhere else must match a snapshot recorded under either
+    path, whichever route the session was started through.
+    realpath() leaves a non-existent path unchanged, so snapshots whose
+    directory has since been deleted still compare by their literal path.
+    """
+    if not path:
+        return ""
+    try:
+        return os.path.normpath(os.path.realpath(path))
+    except Exception:
+        return os.path.normpath(path)
+
+
+def newest_snapshot_for_cwd(cwd, max_age=24 * 3600):
+    """Most recent snapshot .md whose recorded cwd matches, within max_age.
+
+    Deliberately does NOT exclude the current session: /clear and /resume
+    both preserve session_id (only a brand-new window gets a new one), so
+    excluding "self" would hide a snapshot the same session just wrote
+    moments ago via /lifeboat right before /clear.
+    """
+    if not cwd:
+        return None
+    target = canon(cwd)
+    best, best_ts = None, 0
+    now = __import__("time").time()
+    for meta in LIFEBOAT_DIR.glob("*.meta"):
+        try:
+            m = json.loads(meta.read_text())
+        except Exception:
+            continue
+        if canon(m.get("cwd", "")) != target:
+            continue
+        ts = m.get("ts", 0)
+        if now - ts > max_age:
+            continue
+        md = LIFEBOAT_DIR / f"{meta.stem}.md"
+        if md.exists() and ts > best_ts:
+            best, best_ts = md, ts
+    return best
+
+
+def main():
+    try:
+        data = json.load(sys.stdin)
+    except Exception:
+        sys.exit(0)
+
+    session = data.get("session_id", "")
+    event = data.get("hook_event_name", "UserPromptSubmit")
+    transcript = data.get("transcript_path", "")
+    marker = LIFEBOAT_DIR / f"{session}.pending"
+    snap = LIFEBOAT_DIR / f"{session}.md"
+
+    # Cross-session / cross-clear handoff: works identically for a brand-new
+    # chat window (new session_id) and for /clear or /resume in the same
+    # window (session_id typically persists across those) — either way we
+    # look for the newest snapshot in this cwd and inject it if it's newer
+    # than the last one this session_id already saw.
+    if event == "SessionStart" and data.get("source") in ("startup", "clear", "resume"):
+        picked = newest_snapshot_for_cwd(data.get("cwd", ""))
+        if picked:
+            picked_ts = picked.stat().st_mtime
+            offers = LIFEBOAT_DIR / ".session-offers.json"
+            try:
+                seen = json.loads(offers.read_text()) if offers.exists() else {}
+            except Exception:
+                seen = {}
+            if seen.get(session, 0) < picked_ts:
+                seen[session] = picked_ts
+                try:
+                    LIFEBOAT_DIR.mkdir(parents=True, exist_ok=True)
+                    offers.write_text(json.dumps(seen))
+                except Exception:
+                    pass
+                content = picked.read_text(encoding="utf-8", errors="replace")
+                print(json.dumps({"hookSpecificOutput": {
+                    "hookEventName": event,
+                    "additionalContext": (
+                        "This project has a recent lifeboat snapshot (from this chat "
+                        "before /clear, or from an earlier chat in the same folder). "
+                        "Continue from where that work left off:\n\n" + content
+                    ),
+                }}))
+                sys.exit(0)
+        # Nothing new to offer via cwd-lookup — still check this session's own
+        # pending compaction marker below (e.g. a /resume of a session that
+        # compacted right before the app closed).
+
+    # Restore path: inject once after compaction, whichever event fires first.
+    if session and marker.exists() and snap.exists():
+        content = snap.read_text(encoding="utf-8", errors="replace")
+        marker.unlink(missing_ok=True)
+        ctx = (
+            "Context was just compacted. Lifeboat snapshot of in-flight state "
+            "taken right before compaction — treat this as authoritative for "
+            "what we were doing, then continue the task:\n\n" + content
+        )
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": event,
+                "additionalContext": ctx,
+            }
+        }))
+        sys.exit(0)
+
+    # Early-save + fresh-chat nudge: prompt submit with a transcript.
+    if event == "UserPromptSubmit" and session and transcript and os.path.exists(transcript):
+        used = last_context_tokens(transcript)
+        if used > 0 and used >= compact_trigger(used) - SAVE_LEAD:
+            try:
+                subprocess.run(
+                    ["python3", str(SAVE), "--no-pending"],
+                    input=json.dumps(data), text=True, capture_output=True, timeout=15,
+                )
+            except Exception:
+                pass
+        warn = fresh_chat_nudge(session, compactions_so_far(transcript))
+        if warn:
+            print(json.dumps({
+                "hookSpecificOutput": {
+                    "hookEventName": event,
+                    "additionalContext": warn,
+                }
+            }))
+    sys.exit(0)
+
+
+WARN_STATE = LIFEBOAT_DIR / ".warned"
+
+# Bands are compaction counts, not token counts: the autoCompactWindow cap
+# already holds context flat, so raw size no longer signals anything. What
+# degrades is fidelity — the Nth compaction summarizes a context that is
+# already a summary, so detail decays with each round, not with each token.
+NUDGES = [
+    (4, "[context nudge] This chat has been auto-compacted {n} times. Everything "
+        "from early on is now a summary of a summary, so older detail is "
+        "unreliable — expect to have to re-state things. Starting a fresh chat is "
+        "strongly worth it here; lifeboat carries the in-flight state across, and "
+        "the transcript stays on disk for memory consolidation."),
+    (2, "[context nudge] This chat has been auto-compacted {n} times, so the "
+        "earliest part of it is now a summary of a summary and is losing detail. "
+        "If the current task is finished or the topic is shifting, /clear is both "
+        "cheaper and sharper than continuing — lifeboat hands the state to the "
+        "new chat automatically."),
+]
+
+
+def fresh_chat_nudge(session, count):
+    """Return a nudge the first time this session crosses a compaction band."""
+    band = next((b for b, _ in NUDGES if count >= b), 0)
+    if not band:
+        return None
+    # Namespaced key: the old token-band state lives under the bare session id
+    # and its values (350000+) would swallow every compaction band forever.
+    key = f"{session}:compactions"
+    try:
+        seen = json.loads(WARN_STATE.read_text()) if WARN_STATE.exists() else {}
+    except Exception:
+        seen = {}
+    if seen.get(key, 0) >= band:
+        return None
+    seen[key] = band
+    try:
+        LIFEBOAT_DIR.mkdir(parents=True, exist_ok=True)
+        WARN_STATE.write_text(json.dumps(seen))
+    except Exception:
+        pass
+    text = dict(NUDGES)[band].format(n=count)
+    return text + " Surface this to the user briefly."
+
+
+if __name__ == "__main__":
+    main()

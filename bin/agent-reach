@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Wrapper: points OpenSSL at certifi's CA bundle inside the agent-reach venv.
+# Needed because this python.org-style install has no system cert.pem
+# (the macOS "Install Certificates.command" gap) — plain urllib.request
+# calls (e.g. V2EX) fail TLS verification without this.
+export SSL_CERT_FILE="$("$HOME/.agent-reach-venv/bin/python" -c 'import certifi; print(certifi.where())')"
+exec "$HOME/.agent-reach-venv/bin/agent-reach" "$@"

@@ -1,0 +1,69 @@
+{
+  "cache_weight": 0.1,
+  "weekly_reset": "Sat 03:29 local  (EDIT to your plan's reset)",
+  "checkpoints": [],
+  "ceiling_weekly_effective": null,
+  "ceiling_note": "Run /estimate and give it your current UI weekly %; it calibrates via budget.py recalibrate. A second reading at a different level pins cache_weight + ceiling.",
+  "baselines_effective_tokens": {
+    "single_file_edit": {
+      "base": [
+        15000,
+        40000
+      ],
+      "turns": [
+        2,
+        4
+      ]
+    },
+    "multi_file_feature": {
+      "base": [
+        80000,
+        250000
+      ],
+      "turns": [
+        8,
+        15
+      ]
+    },
+    "debug_investigation": {
+      "base": [
+        60000,
+        200000
+      ],
+      "turns": [
+        6,
+        20
+      ]
+    },
+    "research_fanout": {
+      "base": [
+        150000,
+        500000
+      ],
+      "turns": [
+        3,
+        6
+      ]
+    },
+    "big_build": {
+      "base": [
+        400000,
+        1000000
+      ],
+      "turns": [
+        10,
+        25
+      ]
+    },
+    "repo_sweep_ultracode": {
+      "base": [
+        500000,
+        3000000
+      ],
+      "turns": [
+        1,
+        5
+      ]
+    }
+  }
+}
