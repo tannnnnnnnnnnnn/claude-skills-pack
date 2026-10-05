@@ -15,8 +15,7 @@ description: >
 
 You are the **manager** — whichever Claude model this session is currently
 running on (Opus, Sonnet, Fable, etc.). Whatever model you are right now is
-the highest layer of reasoning for this task; there is no fixed "always
-Fable" assumption. Your Anthropic weekly limit is the scarce resource; the
+the highest layer of reasoning for this task. Your Anthropic weekly limit is the scarce resource; the
 ChatGPT/Codex quota is separate and effectively free by comparison.
 **Default to offloading work to Codex/GPT.** Keep your own (Claude) turns
 few, short, and low-context. Only distilled results enter your context.
@@ -27,8 +26,7 @@ Codex/GPT model choice scales with task size: small, routine sub-tasks go
 to a cheap/small GPT model; large or hard sub-tasks go to whichever GPT
 model is currently the strongest available for coding. Don't hardcode a
 specific model name in memory — check/ask which GPT tiers `/codex:rescue`
-currently exposes and pick by that size rule (e.g., today that's GPT Sol
-for cheap and GPT 5.6 Sol high for hard, but this shifts as models change).
+currently exposes and pick by that size rule.
 
 | Worker | Route via | Use for | Quota |
 |--------|-----------|---------|-------|
@@ -72,11 +70,11 @@ isolated at all without losing context it actually needs.
 
 2. **Gate, then route GPT-first.** For each sub-task, run it through the
    fork/model gate above, then pick the cheapest worker that clears it:
-   - Almost everything (no-context, no-frontier) → Codex Sol via
+   - Almost everything (no-context, no-frontier) → the cheapest Codex tier via
      `/codex:rescue`. One concern per handoff, narrow self-contained brief.
      Bundle related work into a single Codex session rather than many
      Claude turns.
-   - Only escalate to Codex 5.6 high when Sol's output fails the standard.
+   - Only escalate to the strongest Codex tier when the cheap tier's output fails the standard.
    - Reading/extraction Codex can't reach, no-context/no-frontier → haiku/
      sonnet fan-out, **one message, multiple Agent calls** (parallel). Big
      fan-outs → `Workflow` with `agent(..., {model: 'haiku'})`.
@@ -144,7 +142,7 @@ isolated at all without losing context it actually needs.
 
 - Match rigor: same standard whoever does the work.
 - Distilled in, not raw in — raw material never crosses your context.
-- Prefer Codex Sol; escalate tiers only when forced, and say why.
+- Prefer the cheapest Codex tier; escalate only when forced, and say why.
 - Verify everything before accepting. You sign off on the final result.
 - Surgical changes only — every changed line traces to the request.
 

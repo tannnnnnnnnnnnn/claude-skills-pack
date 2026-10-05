@@ -10,8 +10,8 @@ description: >
 
 # Debug (Systematic Root-Cause)
 
-**Iron law: NO FIXES WITHOUT ROOT-CAUSE INVESTIGATION FIRST.**
-Symptom patches are failures. Applies even when the bug "looks simple"
+**Find the root cause before proposing a fix**; a symptom patch leaves
+the bug in place. Applies even when the bug "looks simple"
 or the user is in a hurry — systematic is faster than thrashing.
 
 ## Phase 1 — Root cause investigation
@@ -60,7 +60,7 @@ data flow · multiple changes at once · "one more attempt" after 2 fails.
 
 ## If truly no root cause
 
-Genuinely environmental/timing/external (rare — 95% of "no root cause"
-is incomplete investigation): document what was ruled out, add
+Genuinely environmental/timing/external (rare — most "no root cause"
+verdicts mean the investigation is incomplete): document what was ruled out, add
 appropriate handling (retry/timeout/clear error), add logging for next
 time.

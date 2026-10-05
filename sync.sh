@@ -16,7 +16,7 @@ for s in $SKILLS; do
   fi
 done
 
-for h in safety-net lifeboat-save lifeboat-restore minimal-mode; do
+for h in safety-net lifeboat-save lifeboat-restore; do
   cp "$CLAUDE_DIR/hooks/$h.py" "hooks/$h.py" 2>/dev/null || true
 done
 cp "$CLAUDE_DIR/budget/budget.py" budget/budget.py 2>/dev/null || true

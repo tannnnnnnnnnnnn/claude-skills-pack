@@ -83,5 +83,5 @@ faster than one frontier agent held to the same standard, with 84-98% of input
 tokens billed at the cheap worker rate. Native subagents reproduce all three
 levers — cheap model reads, workers run in parallel, raw tokens stay out of the
 coordinator's context. Origin:
-`~/Desktop/repos/claude-cookbooks/managed_agents/CMA_plan_big_execute_small.ipynb`
+`~/Desktop/Git Repos/claude-cookbooks/managed_agents/CMA_plan_big_execute_small.ipynb`
 (that notebook is the API-metered version; this skill is the on-plan version).

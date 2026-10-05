@@ -12,10 +12,10 @@ description: >
 
 # Dream — Memory Consolidation
 
-Four sequential phases. Do not skip phases.
+Five sequential phases. Do not skip phases.
 
 ```
-ORIENT --> GATHER SIGNAL --> CONSOLIDATE --> PRUNE & INDEX
+ORIENT --> GATHER SIGNAL --> CONSOLIDATE --> PRUNE & INDEX --> REFRESH GRAPH
 ```
 
 Memory system: **native Claude Code auto-memory** —
@@ -35,8 +35,9 @@ what would change, get user confirmation before writing.
 
 ## Phase 2 — GATHER SIGNAL
 
-Find transcripts from the last 7 days (`find ... -name "*.jsonl"
--mtime -7`). Targeted grep, never full reads:
+Find transcripts modified since the last dream (`find ... -name "*.jsonl"
+-newer <project>/memory/.last-dream`; fall back to `-mtime -7` only if
+`.last-dream` is absent). Targeted grep, never full reads:
 
 - **Corrections** (highest priority): "actually", "no,", "wrong",
   "stop doing", "I meant", "that's not"

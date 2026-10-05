@@ -1,8 +1,8 @@
 ---
 name: fable
 description: >
-  Fable review loop via Codex — adversarial cross-model review. Fable 5
-  produces a plan or diff, Codex (GPT 5.6 sol high, read-only) reviews
+  Fable review loop via Codex — adversarial cross-model review. Fable
+  produces a plan or diff, Codex (strongest tier, read-only) reviews
   it, Fable revises, same Codex session re-checks, until APPROVED or
   5 rounds. Trigger: /fable, "fable review loop", "codex review loop",
   "have codex review this", or before merging any high-stakes change.
@@ -11,7 +11,7 @@ description: >
 # Fable Review Loop via Codex
 
 Cross-model review: a differently-trained reviewer doesn't share the
-writer's blind spots. Fable 5 writes, Codex reviews, loop until clean.
+writer's blind spots. Fable writes, Codex reviews, loop until clean.
 
 ## Loop
 
@@ -19,8 +19,8 @@ writer's blind spots. Fable 5 writes, Codex reviews, loop until clean.
    to a session-scoped file in the scratchpad directory — unique filename
    per run so concurrent loops don't collide.
 2. **Submit to Codex.** Use the codex plugin (`/codex:rescue` /
-   codex-rescue agent) with a review-only brief: model GPT 5.6 (sol
-   high), read-only — Codex must NOT edit files. Brief asks for:
+   codex-rescue agent) with a review-only brief: strongest Codex tier,
+   read-only — Codex must NOT edit files. Brief asks for:
    concrete defects with file:line, severity, and a final verdict line —
    exactly `VERDICT: APPROVED` or `VERDICT: REVISE`.
 3. **Parse verdict.**
