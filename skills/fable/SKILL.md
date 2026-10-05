@@ -1,9 +1,9 @@
 ---
 name: fable
 description: >
-  Fable review loop via Codex — adversarial cross-model review. Opus 5.5
+  Fable review loop via Codex — adversarial cross-model review. Claude
   produces a plan or diff, Codex (strongest tier, read-only) reviews
-  it, Opus 5.5 revises, same Codex session re-checks, until APPROVED or
+  it, Claude revises, same Codex session re-checks, until APPROVED or
   5 rounds. Trigger: /fable, "fable review loop", "codex review loop",
   "have codex review this", or before merging any high-stakes change.
 ---
@@ -11,7 +11,7 @@ description: >
 # Fable Review Loop via Codex
 
 Cross-model review: a differently-trained reviewer doesn't share the
-writer's blind spots. Opus 5.5 writes, Codex reviews, loop until clean.
+writer's blind spots. Claude writes, Codex reviews, loop until clean.
 
 ## Loop
 
@@ -38,7 +38,7 @@ writer's blind spots. Opus 5.5 writes, Codex reviews, loop until clean.
 - On APPROVED: report rounds taken and what changed.
 - On round cap: report the unresolved concerns plainly. Never pretend
   approval that didn't happen.
-- Opus 5.5 makes the final call on genuine disagreement — Codex is the
+- Claude makes the final call on genuine disagreement — Codex is the
   reviewer, not the authority. Flag the disagreement to the user.
 
 ## Rules
