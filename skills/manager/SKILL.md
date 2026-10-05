@@ -52,7 +52,7 @@ needs — independent of the routing table above:
 |---|---|---|
 | No  | No  | **Isolate + cheap.** Dispatch via `Agent` (already isolated by default — no inherited history) with `model: haiku`. If this exact sub-task pattern recurs, define it as a real skill with `context: fork` + `agent: general-purpose` (or `Explore` for pure search) so it's reusable, not re-typed. |
 | Yes | No  | **Stay in-thread, downshift model.** Don't dispatch — delegating would either lose the needed context or cost just as much to paste it in. Instead do this turn yourself at a cheap tier (session `/model` or a per-skill `model:` override), keeping the thread intact. |
-| No  | Yes | **Isolate, keep the model strong.** Dispatch via `Agent`/a `context: fork` skill, but do NOT downgrade the model — pass `model: sonnet`/`fable` or let the chosen `agent:` type's own model stand. |
+| No  | Yes | **Isolate, keep the model strong.** Dispatch via `Agent`/a `context: fork` skill, but do NOT downgrade the model — pass `model: sonnet`/`opus` or let the chosen `agent:` type's own model stand. |
 | Yes | Yes | **Main-thread work, no delegation.** This is your job (the manager, i.e. the current session model). Frontier judgment on live context can't be forked away. |
 
 Key fact this table relies on: an `Agent` tool dispatch is **already
