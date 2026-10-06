@@ -23,7 +23,8 @@ dominated by **context re-reads**, not the work itself.
    ```
    `usage` gives per-meter used/ceiling/pct/remaining plus `binding` — the
    meter furthest along. The plan enforces several **independent** weekly
-   limits (all-models, and a tighter Fable pool); the binding one alone
+   limits (all-models, and a tighter top-model pool,
+   tracked as the `fable` meter); the binding one alone
    decides what is affordable. Never quote the pooled all-models figure as
    "your weekly usage" when another meter is higher.
    `context` gives the current session's context size — pass the transcript
@@ -45,7 +46,7 @@ dominated by **context re-reads**, not the work itself.
    - **total** = base + context term, as a low–high range.
 
 4. **Express as % of limits.** Charge the estimate to the meter the work
-   will actually run on: Fable-model work hits both the `fable` meter and
+   will actually run on: top-model work hits both the `fable` meter and
    `all`; everything else hits `all` only. Divide by that meter's
    `remaining`. Also report the `binding` meter if it differs, since it caps
    the session regardless.
