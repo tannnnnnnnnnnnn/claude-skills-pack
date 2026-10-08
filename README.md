@@ -6,16 +6,25 @@ Everything runs locally.
 
 **Cheatsheet:** open `cheatsheet.html` in a browser — one page, when to use what.
 
+## New here? Three steps
+
+1. Unzip this folder anywhere (Downloads is fine).
+2. Open Terminal in the folder and run `bash install.sh`.
+3. Quit and reopen Claude Code. Type `/` and the new skills show up.
+
+Then open `cheatsheet.html` and try `/brainstorm` on any idea.
+
 ## Install
 
 ```bash
 bash install.sh
 ```
 
-Copies skills into `~/.claude/skills/`, installs the safety-net hook, wires
-both hooks into `~/.claude/settings.json` (merges — never overwrites your
-existing config), and adds the auto-dream trigger to `~/.claude/CLAUDE.md`.
-Restart Claude Code afterwards. Re-running is safe.
+Copies skills into `~/.claude/skills/`, installs the safety-net and lifeboat
+hooks, wires them into `~/.claude/settings.json` (merges — never overwrites
+your existing config), and adds the auto-dream trigger to `~/.claude/CLAUDE.md`.
+Restart Claude Code afterwards. Re-running is safe, and skills you already
+have are left alone.
 
 ## What's inside
 
@@ -35,6 +44,11 @@ Restart Claude Code afterwards. Re-running is safe.
 | `/stop-slop` | strip AI-writing tells from prose |
 | `/lifeboat` | manual checkpoint of in-flight task state (auto version runs via hooks) |
 | `/estimate` | pre-task token cost + % of weekly/5h limit, before you spend it |
+| `/graph-loop` | turn a step-by-step workflow into parallel jobs, then run them |
+| `/backup-version` | git tag + a restorable backup folder of a working project |
+
+`/fable` and `/codex-orchestrate` need the Codex add-on (below). `/manager`
+prefers Codex too; without it, tell it to use Claude helpers only.
 
 ### Hooks (`hooks/`)
 - **safety-net.py** — blocks `rm -rf` on dangerous targets, force-push
@@ -46,7 +60,9 @@ Restart Claude Code afterwards. Re-running is safe.
   token cost; restore injects it once on your next message so work
   continues where it left off. Pattern adapted from u-ichi/compact-plus.
 
-- **lifeboat-restore** also carries a *context-cost nudge*: crossing ~350k/600k context injects a one-line warning that each message is now re-reading the whole context (the #1 token drain).
+- **lifeboat-restore** also carries a *fresh-chat nudge*: after a chat has
+  been auto-compacted 2 and then 4 times, it adds a one-line hint that early
+  detail is now a summary of a summary and a fresh chat would be sharper.
 
 Budget tooling (`budget/`): `budget.py` measures token use since your weekly reset from local transcripts (zero API cost) and calibrates your plan ceiling from a UI reading; `/estimate` uses it. Your real `calibration.json` stays local; the repo ships a template.
 

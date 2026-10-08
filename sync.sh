@@ -8,7 +8,7 @@ CLAUDE_DIR="${CLAUDE_DIR:-$HOME/.claude}"
 cd "$REPO_DIR"
 
 # Skills tracked by this pack (personal/third-party-installed ones stay out)
-SKILLS="brainstorm codex-orchestrate debug dream estimate fable lifeboat manager plan-big-execute-small stop-slop ultracode ultrathink worktree"
+SKILLS="backup-version brainstorm codex-orchestrate debug dream estimate fable graph-loop lifeboat manager plan-big-execute-small stop-slop ultracode ultrathink worktree"
 
 for s in $SKILLS; do
   if [ -d "$CLAUDE_DIR/skills/$s" ]; then
